@@ -1,0 +1,130 @@
+import pygame
+import random
+
+
+pygame.init()
+
+
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 400
+GROUND_HEIGHT = SCREEN_HEIGHT - 70
+GRAVITY = 1
+JUMP_STRENGTH = 15
+MIN_SPAWN_INTERVAL = 750
+MAX_SPAWN_INTERVAL = 1400
+
+
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+T_REX_COLOR = (0, 128, 0)  
+CACTUS_COLOR = (128, 0, 0)  
+GROUND_COLOR = (128, 128, 128)  
+
+
+T_REX_WIDTH = 35
+T_REX_HEIGHT = 35
+
+
+CACTUS_WIDTH = 25
+CACTUS_HEIGHT = 55
+
+
+class T_Rex(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.Surface((T_REX_WIDTH, T_REX_HEIGHT))
+        self.image.fill(T_REX_COLOR)
+        self.rect = self.image.get_rect()
+        self.rect.x = 50
+        self.rect.y = GROUND_HEIGHT - self.rect.height
+        self.velocity = 0
+
+    def update(self):
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_SPACE] and self.rect.y == GROUND_HEIGHT - self.rect.height:
+            self.velocity = -JUMP_STRENGTH
+
+        self.velocity += GRAVITY
+        self.rect.y += self.velocity
+
+        if self.rect.y >= GROUND_HEIGHT - self.rect.height:
+            self.rect.y = GROUND_HEIGHT - self.rect.height
+            self.velocity = 0
+
+class Cactus(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.Surface((CACTUS_WIDTH, CACTUS_HEIGHT))
+        self.image.fill(CACTUS_COLOR)
+        self.rect = self.image.get_rect()
+        self.rect.x = SCREEN_WIDTH
+        self.rect.y = GROUND_HEIGHT - self.rect.height
+
+    def update(self):
+        self.rect.x -= 20
+        if self.rect.x < -self.rect.width:
+            self.kill()
+
+
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("Sigma cube gerald the third")
+clock = pygame.time.Clock()
+
+font = pygame.font.Font(None, 36)
+
+
+all_sprites = pygame.sprite.Group()
+obstacles = pygame.sprite.Group()
+
+
+t_rex = T_Rex()
+all_sprites.add(t_rex)
+
+def get_random_spawn_interval():
+    return random.randint(MIN_SPAWN_INTERVAL, MAX_SPAWN_INTERVAL)
+
+last_enemy_spawn_time = pygame.time.get_ticks()
+next_enemy_spawn_time = get_random_spawn_interval()
+
+
+score = 0
+
+running = True
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+    
+    current_time = pygame.time.get_ticks()
+    if current_time - last_enemy_spawn_time > next_enemy_spawn_time:
+        cactus = Cactus()
+        all_sprites.add(cactus)
+        obstacles.add(cactus)
+        last_enemy_spawn_time = current_time
+        next_enemy_spawn_time = get_random_spawn_interval()
+
+    
+    all_sprites.update()
+    
+    score += 1/2 
+
+
+   
+    if pygame.sprite.spritecollide(t_rex, obstacles, False):
+        running = False
+
+    
+    screen.fill(WHITE)
+    pygame.draw.rect(screen, GROUND_COLOR, (0, GROUND_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT - GROUND_HEIGHT))
+    all_sprites.draw(screen)
+    
+    
+    score_text = font.render("Score: " + str(score), True, BLACK)
+    screen.blit(score_text, (10,10))
+    
+
+
+    pygame.display.flip()
+    clock.tick(30)
+
+pygame.quit() 
